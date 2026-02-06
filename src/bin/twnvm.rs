@@ -140,7 +140,7 @@ fn main() {
             }
             // JZ
             0x20 => {
-                if let Some(&flg) = stack.last() {
+                if let Some(flg) = stack.pop() {
                     pc += 1;
                     if flg == 0 {
                         let dst = tokens[pc];
@@ -182,7 +182,7 @@ fn main() {
             }
             // PRINT
             0x90 => {
-                if let Some(value) = stack.last() {
+                if let Some(value) = stack.pop() {
                     println!("{}", value);
                 } else {
                     irregular("Stack is empty", token);
