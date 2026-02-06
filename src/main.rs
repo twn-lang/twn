@@ -11,6 +11,11 @@ use std::{io, process::exit};
  * 0x91: DUMP
  */
 
+fn irregular(statement: &'static str) {
+    eprintln!("{statement}");
+    exit(1);
+}
+
 fn main() {
     let mut input: String = String::new();
     io::stdin().read_line(&mut input).expect("Input is empty");
@@ -59,16 +64,14 @@ fn main() {
                 if let Some(value) = stack.last() {
                     println!("{}", value);
                 } else {
-                    eprintln!("Stack is empty");
-                    exit(1);
+                    irregular("Stack is empty");
                 }
             }
             0x91 => {
                 println!("{:?}", stack);
             }
             _ => {
-                eprintln!("Included invalid OpCode");
-                exit(1);
+                irregular("Include invalid OpCode");
             }
         }
 
