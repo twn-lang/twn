@@ -7,14 +7,17 @@ const MEMORY_SIZE: usize = 256;
 /*
  * OpCode
  * 0x01: PUSH
+ * 0x02: POP
  * 0x10: ADD
  * 0x11: SUB
  * 0x12: MUL
  * 0x13: DIV
- * 0x14: ADDI
- * 0x15: SUBI
- * 0x16: MULI
- * 0x17: DIVI
+ * 0x14: MOD
+ * 0x15: ADDI
+ * 0x16: SUBI
+ * 0x17: MULI
+ * 0x18: DIVI
+ * 0x19: MODI
  * 0x20: JZ
  * 0x21: JMZ
  * 0x30: STORE
@@ -52,6 +55,13 @@ fn main() {
                 pc += 1;
                 stack.push(tokens[pc]);
             }
+            // POP
+            0x02 => {
+                if stack.is_empty() {
+                    irregular("Stack is empty", token);
+                }
+                stack.pop().unwrap();
+            }
             // ADD
             0x10 => {
                 let b: u8 = stack.pop().unwrap_or_default();
@@ -80,8 +90,16 @@ fn main() {
 
                 stack.push(a.saturating_div(b));
             }
-            // ADDI
+            // MOD
             0x14 => {
+                pc += 1;
+                let b: u8 = tokens[pc];
+                let a: u8 = stack.pop().unwrap_or_default();
+
+                stack.push(a % b);
+            }
+            // ADDI
+            0x15 => {
                 pc += 1;
                 let b: u8 = tokens[pc];
                 let a: u8 = stack.pop().unwrap_or_default();
@@ -89,7 +107,7 @@ fn main() {
                 stack.push(a.saturating_add(b));
             }
             // SUBI
-            0x15 => {
+            0x16 => {
                 pc += 1;
                 let b: u8 = tokens[pc];
                 let a: u8 = stack.pop().unwrap_or_default();
@@ -97,7 +115,7 @@ fn main() {
                 stack.push(a.saturating_sub(b));
             }
             // MULI
-            0x16 => {
+            0x17 => {
                 pc += 1;
                 let b: u8 = tokens[pc];
                 let a: u8 = stack.pop().unwrap_or_default();
@@ -105,12 +123,20 @@ fn main() {
                 stack.push(a.saturating_mul(b));
             }
             // DIVI
-            0x17 => {
+            0x18 => {
                 pc += 1;
                 let b: u8 = tokens[pc];
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a.saturating_div(b));
+            }
+            // MODI
+            0x19 => {
+                pc += 1;
+                let b: u8 = tokens[pc];
+                let a: u8 = stack.pop().unwrap_or_default();
+
+                stack.push(a % b);
             }
             // JZ
             0x20 => {
