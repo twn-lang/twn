@@ -1,5 +1,7 @@
 use std::process::exit;
 
+use twn::utils::irregular;
+
 const MEMORY_SIZE: usize = 256;
 
 /*
@@ -21,11 +23,6 @@ const MEMORY_SIZE: usize = 256;
  * 0x91: DUMP
  * 0xFF: FIN
  */
-
-fn irregular(statement: &'static str) {
-    eprintln!("{statement}");
-    exit(1);
-}
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -125,7 +122,7 @@ fn main() {
                         continue;
                     }
                 } else {
-                    irregular("Not exist flag");
+                    irregular("Not exist flag", token);
                 }
             }
             // JMZ
@@ -143,7 +140,7 @@ fn main() {
                 if let Some(target) = stack.pop() {
                     memory[mem_dst] = Some(target);
                 } else {
-                    irregular("Stack is empty");
+                    irregular("Stack is empty", token);
                 }
             }
             // LOAD
@@ -154,7 +151,7 @@ fn main() {
                 if let Some(target) = memory[mem_dst] {
                     stack.push(target);
                 } else {
-                    irregular("Not exist in designated address");
+                    irregular("Not exist in designated address", token);
                 }
             }
             // PRINT
@@ -162,7 +159,7 @@ fn main() {
                 if let Some(value) = stack.last() {
                     println!("{}", value);
                 } else {
-                    irregular("Stack is empty");
+                    irregular("Stack is empty", token);
                 }
             }
             // DUMP
@@ -174,7 +171,7 @@ fn main() {
                 exit(0);
             }
             _ => {
-                irregular("Include invalid OpCode");
+                irregular("Include invalid OpCode", token);
             }
         }
 
