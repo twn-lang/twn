@@ -7,7 +7,8 @@ use std::{io, process::exit};
  * 0x12: SUB
  * 0x13: MUL
  * 0x14: DIV
- * 0x99: PRINT
+ * 0x90: PRINT
+ * 0x91: DUMP
  */
 
 fn main() {
@@ -54,13 +55,16 @@ fn main() {
 
                 stack.push(a.saturating_div(b));
             }
-            0x99 => {
+            0x90 => {
                 if let Some(value) = stack.last() {
                     println!("{}", value);
                 } else {
                     eprintln!("Stack is empty");
                     exit(1);
                 }
+            }
+            0x91 => {
+                println!("{:?}", stack);
             }
             _ => {
                 eprintln!("Included invalid OpCode");
