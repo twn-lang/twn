@@ -1,4 +1,9 @@
-use std::{io::{self, Read}, process::exit};
+use std::{
+    io::{self, Read},
+    process::exit,
+};
+
+const MEMORY_SIZE: usize = 256;
 
 /*
  * OpCode
@@ -9,6 +14,8 @@ use std::{io::{self, Read}, process::exit};
  * 0x13: DIV
  * 0x20: JZ
  * 0x21: JMZ
+ * 0x30: STORE
+ * 0x31: LOAD
  * 0x90: PRINT
  * 0x91: DUMP
  * 0xFF: FIN
@@ -32,39 +39,46 @@ fn main() {
 
     let mut pc: usize = 0;
     let mut stack: Vec<u8> = Vec::new();
+    let mut memory: Vec<Option<u8>> = vec![None; MEMORY_SIZE];
 
     while pc < tokens.len() {
         let token = tokens[pc];
 
         match token {
+            // PUSH
             0x01 => {
                 pc += 1;
                 stack.push(tokens[pc]);
             }
+            // ADD
             0x10 => {
                 let b: u8 = stack.pop().unwrap_or_default();
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a.saturating_add(b));
             }
+            // SUB
             0x11 => {
                 let b: u8 = stack.pop().unwrap_or_default();
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a.saturating_sub(b));
             }
+            // MUL
             0x12 => {
                 let b: u8 = stack.pop().unwrap_or_default();
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a.saturating_mul(b));
             }
+            // DIV
             0x13 => {
                 let b: u8 = stack.pop().unwrap_or_default();
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a.saturating_div(b));
             }
+            // JZ
             0x20 => {
                 if let Some(&flg) = stack.last() {
                     pc += 1;
@@ -77,12 +91,36 @@ fn main() {
                     irregular("Not exist flag");
                 }
             }
+            // JMZ
             0x21 => {
                 pc += 1;
                 let dst = tokens[pc];
                 pc = dst as usize;
                 continue;
             }
+            // STORE
+            0x30 => {
+                pc += 1;
+                let mem_dst: usize = tokens[pc] as usize;
+
+                if let Some(target) = stack.pop() {
+                    memory[mem_dst] = Some(target);
+                } else {
+                    irregular("Stack is empty");
+                }
+            }
+            // LOAD
+            0x31 => {
+                pc += 1;
+                let mem_dst: usize = tokens[pc] as usize;
+
+                if let Some(target) = memory[mem_dst] {
+                    stack.push(target);
+                } else {
+                    irregular("Not exist in designated address");
+                }
+            }
+            // PRINT
             0x90 => {
                 if let Some(value) = stack.last() {
                     println!("{}", value);
@@ -90,9 +128,11 @@ fn main() {
                     irregular("Stack is empty");
                 }
             }
+            // DUMP
             0x91 => {
                 println!("{:?}", stack);
             }
+            // FIN
             0xFF => {
                 exit(0);
             }
