@@ -12,6 +12,10 @@ const MEMORY_SIZE: usize = 256;
  * 0x11: SUB
  * 0x12: MUL
  * 0x13: DIV
+ * 0x14: ADDI
+ * 0x15: SUBI
+ * 0x16: MULI
+ * 0x17: DIVI
  * 0x20: JZ
  * 0x21: JMZ
  * 0x30: STORE
@@ -74,6 +78,38 @@ fn main() {
             // DIV
             0x13 => {
                 let b: u8 = stack.pop().unwrap_or_default();
+                let a: u8 = stack.pop().unwrap_or_default();
+
+                stack.push(a.saturating_div(b));
+            }
+            // ADDI
+            0x14 => {
+                pc += 1;
+                let b: u8 = tokens[pc];
+                let a: u8 = stack.pop().unwrap_or_default();
+
+                stack.push(a.saturating_add(b));
+            }
+            // SUBI
+            0x15 => {
+                pc += 1;
+                let b: u8 = tokens[pc];
+                let a: u8 = stack.pop().unwrap_or_default();
+
+                stack.push(a.saturating_sub(b));
+            }
+            // MULI
+            0x16 => {
+                pc += 1;
+                let b: u8 = tokens[pc];
+                let a: u8 = stack.pop().unwrap_or_default();
+
+                stack.push(a.saturating_mul(b));
+            }
+            // DIVI
+            0x17 => {
+                pc += 1;
+                let b: u8 = tokens[pc];
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a.saturating_div(b));
