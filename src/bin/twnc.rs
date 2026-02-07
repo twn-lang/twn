@@ -46,20 +46,30 @@ fn main() {
     let mut label_count: u8 = 0;
     let mut labels: HashMap<String, u8> = HashMap::new();
 
-    for token in input.split_whitespace() {
-        label_count += 1;
-        if token.ends_with(':') {
-            label_count -= 1;
-            let label = token.strip_suffix(':').unwrap();
-
-            labels.insert(label.to_string(), label_count);
-        }
-    }
-
     let split_tokens: Vec<&str> = input.split('\n').collect::<Vec<&str>>();
 
     for split_token in split_tokens.iter() {
         for token in split_token.split_whitespace() {
+            if token.starts_with(';') {
+                break;
+            }
+
+            label_count += 1;
+            if token.ends_with(':') {
+                label_count -= 1;
+                let label = token.strip_suffix(':').unwrap();
+
+                labels.insert(label.to_string(), label_count);
+            }
+        }
+    }
+
+    for split_token in split_tokens.iter() {
+        for token in split_token.split_whitespace() {
+            if token.starts_with(';') {
+                break;
+            }
+
             label_count += 1;
             let token = token.to_uppercase();
 
