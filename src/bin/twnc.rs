@@ -3,6 +3,8 @@ use std::io::Write;
 use std::path::Path;
 use std::process::exit;
 
+use twn::OpCode;
+
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
 
@@ -20,28 +22,6 @@ fn main() {
         .truncate(true)
         .open(output)
         .expect("Failed to open or create the file");
-
-    let opcode_map: HashMap<&str, u8> = HashMap::from([
-        ("PUSH", 0x01),
-        ("POP", 0x02),
-        ("ADD", 0x10),
-        ("SUB", 0x11),
-        ("MUL", 0x12),
-        ("DIV", 0x13),
-        ("MOD", 0x14),
-        ("ADDI", 0x15),
-        ("SUBI", 0x16),
-        ("MULI", 0x17),
-        ("DIVI", 0x18),
-        ("MODI", 0x19),
-        ("JZ", 0x20),
-        ("JMZ", 0x21),
-        ("STORE", 0x30),
-        ("LOAD", 0x31),
-        ("PRINT", 0x90),
-        ("DUMP", 0x91),
-        ("FIN", 0xFF),
-    ]);
 
     let mut label_count: u8 = 0;
     let mut labels: HashMap<String, u8> = HashMap::new();
@@ -73,8 +53,8 @@ fn main() {
             label_count += 1;
             let token = token.to_uppercase();
 
-            if let Some(opcode) = opcode_map.get(token.as_str()) {
-                write!(output_file, "{:02X} ", opcode).expect("Failed write in file");
+            if let Some(opcode) = OpCode::from_str(token.as_str()) {
+                write!(output_file, "{:02X} ", opcode as u8).expect("Failed write in file");
                 continue;
             }
 

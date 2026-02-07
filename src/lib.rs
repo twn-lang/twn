@@ -5,6 +5,29 @@ pub fn irregular(statement: &str, opcode: u8) {
     exit(1);
 }
 
+/*
+ * OpCode
+ * 0x01: PUSH
+ * 0x02: POP
+ * 0x10: ADD
+ * 0x11: SUB
+ * 0x12: MUL
+ * 0x13: DIV
+ * 0x14: MOD
+ * 0x15: ADDI
+ * 0x16: SUBI
+ * 0x17: MULI
+ * 0x18: DIVI
+ * 0x19: MODI
+ * 0x20: JZ
+ * 0x21: JMZ
+ * 0x30: STORE
+ * 0x31: LOAD
+ * 0x90: PRINT
+ * 0x91: DUMP
+ * 0xFF: FIN
+ */
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum OpCode {

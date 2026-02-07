@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use twn::utils::irregular;
+use twn::*;
 
 const MEMORY_SIZE: usize = 256;
 
@@ -49,156 +49,138 @@ fn main() {
     while pc < tokens.len() {
         let token = tokens[pc];
 
-        match token {
-            // PUSH
-            0x01 => {
-                pc += 1;
-                stack.push(tokens[pc]);
-            }
-            // POP
-            0x02 => {
-                if stack.is_empty() {
-                    irregular("Stack is empty", token);
-                }
-                stack.pop().unwrap();
-            }
-            // ADD
-            0x10 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_add(b));
-            }
-            // SUB
-            0x11 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_sub(b));
-            }
-            // MUL
-            0x12 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_mul(b));
-            }
-            // DIV
-            0x13 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_div(b));
-            }
-            // MOD
-            0x14 => {
-                pc += 1;
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a % b);
-            }
-            // ADDI
-            0x15 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_add(b));
-            }
-            // SUBI
-            0x16 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_sub(b));
-            }
-            // MULI
-            0x17 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_mul(b));
-            }
-            // DIVI
-            0x18 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_div(b));
-            }
-            // MODI
-            0x19 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a % b);
-            }
-            // JZ
-            0x20 => {
-                if let Some(flg) = stack.pop() {
+        if let Some(opcode) = OpCode::from_u8(token) {
+            match opcode {
+                OpCode::Push => {
                     pc += 1;
-                    if flg == 0 {
-                        let dst = tokens[pc];
-                        pc = dst as usize;
-                        continue;
+                    stack.push(tokens[pc]);
+                }
+                OpCode::Pop => {
+                    if stack.is_empty() {
+                        irregular("Stack is empty", token);
                     }
-                } else {
-                    irregular("Not exist flag", token);
+                    stack.pop().unwrap();
                 }
-            }
-            // JMZ
-            0x21 => {
-                pc += 1;
-                let dst = tokens[pc];
-                pc = dst as usize;
-                continue;
-            }
-            // STORE
-            0x30 => {
-                pc += 1;
-                let mem_dst: usize = tokens[pc] as usize;
+                OpCode::Add => {
+                    let b: u8 = stack.pop().unwrap_or_default();
+                    let a: u8 = stack.pop().unwrap_or_default();
 
-                if let Some(target) = stack.pop() {
-                    memory[mem_dst] = Some(target);
-                } else {
-                    irregular("Stack is empty", token);
+                    stack.push(a.saturating_add(b));
                 }
-            }
-            // LOAD
-            0x31 => {
-                pc += 1;
-                let mem_dst: usize = tokens[pc] as usize;
+                OpCode::Sub => {
+                    let b: u8 = stack.pop().unwrap_or_default();
+                    let a: u8 = stack.pop().unwrap_or_default();
 
-                if let Some(target) = memory[mem_dst] {
-                    stack.push(target);
-                } else {
-                    irregular("Not exist in designated address", token);
+                    stack.push(a.saturating_sub(b));
+                }
+                OpCode::Mul => {
+                    let b: u8 = stack.pop().unwrap_or_default();
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a.saturating_mul(b));
+                }
+                OpCode::Div => {
+                    let b: u8 = stack.pop().unwrap_or_default();
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a.saturating_div(b));
+                }
+                OpCode::Mod => {
+                    pc += 1;
+                    let b: u8 = stack.pop().unwrap_or_default();
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a % b);
+                }
+                OpCode::AddI => {
+                    pc += 1;
+                    let b: u8 = tokens[pc];
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a.saturating_add(b));
+                }
+                OpCode::SubI => {
+                    pc += 1;
+                    let b: u8 = tokens[pc];
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a.saturating_sub(b));
+                }
+                OpCode::MulI => {
+                    pc += 1;
+                    let b: u8 = tokens[pc];
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a.saturating_mul(b));
+                }
+                OpCode::DivI => {
+                    pc += 1;
+                    let b: u8 = tokens[pc];
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a.saturating_div(b));
+                }
+                OpCode::ModI => {
+                    pc += 1;
+                    let b: u8 = tokens[pc];
+                    let a: u8 = stack.pop().unwrap_or_default();
+
+                    stack.push(a % b);
+                }
+                OpCode::Jz => {
+                    if let Some(flg) = stack.pop() {
+                        pc += 1;
+                        if flg == 0 {
+                            let dst = tokens[pc];
+                            pc = dst as usize;
+                            continue;
+                        }
+                    } else {
+                        irregular("Not exist flag", token);
+                    }
+                }
+                OpCode::Jmz => {
+                    pc += 1;
+                    let dst = tokens[pc];
+                    pc = dst as usize;
+                    continue;
+                }
+                OpCode::Store => {
+                    pc += 1;
+                    let mem_dst: usize = tokens[pc] as usize;
+
+                    if let Some(target) = stack.pop() {
+                        memory[mem_dst] = Some(target);
+                    } else {
+                        irregular("Stack is empty", token);
+                    }
+                }
+                OpCode::Load => {
+                    pc += 1;
+                    let mem_dst: usize = tokens[pc] as usize;
+
+                    if let Some(target) = memory[mem_dst] {
+                        stack.push(target);
+                    } else {
+                        irregular("Not exist in designated address", token);
+                    }
+                }
+                OpCode::Print => {
+                    if let Some(value) = stack.pop() {
+                        println!("{}", value);
+                    } else {
+                        irregular("Stack is empty", token);
+                    }
+                }
+                OpCode::Dump => {
+                    println!("{:?}", stack);
+                }
+                OpCode::Fin => {
+                    exit(0);
                 }
             }
-            // PRINT
-            0x90 => {
-                if let Some(value) = stack.pop() {
-                    println!("{}", value);
-                } else {
-                    irregular("Stack is empty", token);
-                }
-            }
-            // DUMP
-            0x91 => {
-                println!("{:?}", stack);
-            }
-            // FIN
-            0xFF => {
-                exit(0);
-            }
-            _ => {
-                irregular("Include invalid OpCode", token);
-            }
+        } else {
+            irregular("Include invalid OpCode", token);
         }
 
         pc += 1;
