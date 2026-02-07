@@ -93,7 +93,7 @@ fn main() {
             // MOD
             0x14 => {
                 pc += 1;
-                let b: u8 = tokens[pc];
+                let b: u8 = stack.pop().unwrap_or_default();
                 let a: u8 = stack.pop().unwrap_or_default();
 
                 stack.push(a % b);
