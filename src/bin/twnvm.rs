@@ -56,6 +56,14 @@ impl VM {
         Ok(self.tokens[self.pc])
     }
 
+    fn pop_stack(&mut self) -> Result<u8, VmError> {
+        if self.stack.is_empty() {
+            return Err(VmError::StackUnderflow);
+        }
+
+        Ok(self.stack.pop().unwrap())
+    }
+
     fn run(&mut self) -> Result<(), VmError> {
         while self.pc < self.tokens.len() {
             let token = self.tokens[self.pc];
@@ -67,80 +75,74 @@ impl VM {
                         self.stack.push(val);
                     }
                     OpCode::Pop => {
-                        if self.stack.is_empty() {
-                            irregular("self.Stack is empty", token);
-                        }
-                        self.stack.pop().unwrap();
+                        self.pop_stack()?;
                     }
                     OpCode::Add => {
-                        let b: u8 = self.stack.pop().unwrap_or_default();
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_add(b));
                     }
                     OpCode::Sub => {
-                        let b: u8 = self.stack.pop().unwrap_or_default();
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_sub(b));
                     }
                     OpCode::Mul => {
-                        let b: u8 = self.stack.pop().unwrap_or_default();
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_mul(b));
                     }
                     OpCode::Div => {
-                        let b: u8 = self.stack.pop().unwrap_or_default();
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_div(b));
                     }
                     OpCode::Mod => {
-                        let b: u8 = self.stack.pop().unwrap_or_default();
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a % b);
                     }
                     OpCode::AddI => {
                         let b: u8 = self.next_byte()?;
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_add(b));
                     }
                     OpCode::SubI => {
                         let b: u8 = self.next_byte()?;
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_sub(b));
                     }
                     OpCode::MulI => {
                         let b: u8 = self.next_byte()?;
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_mul(b));
                     }
                     OpCode::DivI => {
                         let b: u8 = self.next_byte()?;
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a.saturating_div(b));
                     }
                     OpCode::ModI => {
                         let b: u8 = self.next_byte()?;
-                        let a: u8 = self.stack.pop().unwrap_or_default();
+                        let a: u8 = self.pop_stack()?;
 
                         self.stack.push(a % b);
                     }
                     OpCode::Jz => {
-                        if let Some(flg) = self.stack.pop() {
-                            if flg == 0 {
-                                let dst = self.next_byte()?;
-                                self.pc = dst as usize;
-                                continue;
-                            }
-                        } else {
-                            irregular("Not exist flag", token);
+                        let flg = self.pop_stack()?;
+                        let dst = self.next_byte()?;
+                        if flg == 0 {
+                            self.pc = dst as usize;
+                            continue;
                         }
                     }
                     OpCode::Jmz => {
@@ -150,12 +152,8 @@ impl VM {
                     }
                     OpCode::Store => {
                         let mem_dst = self.next_byte()? as usize;
-
-                        if let Some(target) = self.stack.pop() {
-                            self.memory[mem_dst] = Some(target);
-                        } else {
-                            irregular("self.Stack is empty", token);
-                        }
+                        let target = self.pop_stack()?;
+                        self.memory[mem_dst] = Some(target);
                     }
                     OpCode::Load => {
                         let mem_dst = self.next_byte()? as usize;
@@ -167,11 +165,8 @@ impl VM {
                         }
                     }
                     OpCode::Print => {
-                        if let Some(value) = self.stack.pop() {
-                            println!("{}", value);
-                        } else {
-                            irregular("self.Stack is empty", token);
-                        }
+                        let value = self.pop_stack()?;
+                        println!("{value}");
                     }
                     OpCode::Dump => {
                         println!("{:?}", self.stack);
