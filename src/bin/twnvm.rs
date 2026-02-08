@@ -13,6 +13,7 @@ enum VmError {
     DivisionByZero,             // 0で割ろうとした
     InvalidOpcode(u8),          // 知らない命令が来た
     InvalidMemoryAccess(usize), // メモリ範囲外にアクセスした
+    UninitializedMemory(usize), // まだ値の入っていないメモリにアクセスした
     UnexpectedEof,              // 命令の途中でファイルが終わった
     UnknownLabel(String),       // 未定義ラベル
 }
@@ -24,6 +25,7 @@ impl std::fmt::Display for VmError {
             Self::DivisionByZero => write!(f, "Division by zero"),
             Self::InvalidOpcode(opcode) => write!(f, "Invalid Opcode: {:02X}", opcode),
             Self::InvalidMemoryAccess(dst) => write!(f, "Invalid memory access: {:02X}", dst),
+            Self::UninitializedMemory(dst) => write!(f, "Not exist designated memory: {:02X}", dst),
             Self::UnexpectedEof => write!(f, "Unexpected EOF"),
             Self::UnknownLabel(label) => write!(f, "Unknown lable: {label}"),
             _ => write!(f, "{:?}", self),
@@ -73,6 +75,27 @@ impl VM {
         }
 
         Ok(self.stack.pop().unwrap())
+    }
+
+    fn store_memory(&mut self, content: u8, dst: usize) -> Result<(), VmError> {
+        if MEMORY_SIZE <= dst {
+            return Err(VmError::InvalidMemoryAccess(dst));
+        }
+
+        self.memory[dst] = Some(content);
+
+        Ok(())
+    }
+
+    fn load_memory(&self, dst: usize) -> Result<Option<u8>, VmError> {
+        if MEMORY_SIZE <= dst {
+            return Err(VmError::InvalidMemoryAccess(dst));
+        }
+
+        match self.memory[dst] {
+            Some(content) => return Ok(Some(content)),
+            None => return Err(VmError::UninitializedMemory(dst)),
+        }
     }
 
     fn run(&mut self) -> Result<(), VmError> {
@@ -172,16 +195,13 @@ impl VM {
                     OpCode::Store => {
                         let mem_dst = self.next_byte()? as usize;
                         let target = self.pop_stack()?;
-                        self.memory[mem_dst] = Some(target);
+                        self.store_memory(target, mem_dst)?;
                     }
                     OpCode::Load => {
                         let mem_dst = self.next_byte()? as usize;
 
-                        if let Some(target) = self.memory[mem_dst] {
-                            self.push_stack(target)?;
-                        } else {
-                            irregular("Not exist in designated address", token);
-                        }
+                        let target = self.load_memory(mem_dst)?.unwrap();
+                        self.push_stack(target)?;
                     }
                     OpCode::Print => {
                         let value = self.pop_stack()?;
