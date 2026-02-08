@@ -3,6 +3,7 @@ use std::process::exit;
 use twn::*;
 
 const MEMORY_SIZE: usize = 256;
+const STACK_SIZE: usize = 256;
 const BYTE_SIZE: u8 = 1;
 
 #[derive(Debug)]
@@ -56,6 +57,16 @@ impl VM {
         Ok(self.tokens[self.pc])
     }
 
+    fn push_stack(&mut self, content: u8) -> Result<(), VmError> {
+        if STACK_SIZE <= self.stack.len() {
+            return Err(VmError::StackOverflow);
+        }
+
+        self.stack.push(content);
+
+        Ok(())
+    }
+
     fn pop_stack(&mut self) -> Result<u8, VmError> {
         if self.stack.is_empty() {
             return Err(VmError::StackUnderflow);
@@ -72,7 +83,7 @@ impl VM {
                 match opcode {
                     OpCode::Push => {
                         let val = self.next_byte()?;
-                        self.stack.push(val);
+                        self.push_stack(val)?;
                     }
                     OpCode::Pop => {
                         self.pop_stack()?;
@@ -81,61 +92,61 @@ impl VM {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_add(b));
+                        self.push_stack(a.saturating_add(b))?;
                     }
                     OpCode::Sub => {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_sub(b));
+                        self.push_stack(a.saturating_sub(b))?;
                     }
                     OpCode::Mul => {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_mul(b));
+                        self.push_stack(a.saturating_mul(b))?;
                     }
                     OpCode::Div => {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_div(b));
+                        self.push_stack(a.saturating_div(b))?;
                     }
                     OpCode::Mod => {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a % b);
+                        self.push_stack(a % b)?;
                     }
                     OpCode::AddI => {
                         let b: u8 = self.next_byte()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_add(b));
+                        self.push_stack(a.saturating_add(b))?;
                     }
                     OpCode::SubI => {
                         let b: u8 = self.next_byte()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_sub(b));
+                        self.push_stack(a.saturating_sub(b))?;
                     }
                     OpCode::MulI => {
                         let b: u8 = self.next_byte()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_mul(b));
+                        self.push_stack(a.saturating_mul(b))?;
                     }
                     OpCode::DivI => {
                         let b: u8 = self.next_byte()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a.saturating_div(b));
+                        self.push_stack(a.saturating_div(b))?;
                     }
                     OpCode::ModI => {
                         let b: u8 = self.next_byte()?;
                         let a: u8 = self.pop_stack()?;
 
-                        self.stack.push(a % b);
+                        self.push_stack(a % b)?;
                     }
                     OpCode::Jz => {
                         let flg = self.pop_stack()?;
@@ -159,7 +170,7 @@ impl VM {
                         let mem_dst = self.next_byte()? as usize;
 
                         if let Some(target) = self.memory[mem_dst] {
-                            self.stack.push(target);
+                            self.push_stack(target)?;
                         } else {
                             irregular("Not exist in designated address", token);
                         }
