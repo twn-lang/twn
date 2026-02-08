@@ -34,13 +34,13 @@ fn main() {
                 break;
             }
 
-            label_count += 1;
             if token.ends_with(':') {
-                label_count -= 1;
                 let label = token.strip_suffix(':').unwrap();
 
                 labels.insert(label.to_string(), label_count);
+                continue;
             }
+            label_count += 1;
         }
     }
 
@@ -50,7 +50,6 @@ fn main() {
                 break;
             }
 
-            label_count += 1;
             let token = token.to_uppercase();
 
             if let Some(opcode) = OpCode::from_str(token.as_str()) {
