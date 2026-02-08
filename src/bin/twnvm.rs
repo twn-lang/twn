@@ -5,6 +5,31 @@ use twn::*;
 const MEMORY_SIZE: usize = 256;
 const BYTE_SIZE: u8 = 1;
 
+#[derive(Debug)]
+enum VmError {
+    StackUnderflow,             // POPしようとしたがスタックが空
+    StackOverflow,              // スタックが上限を超えた
+    DivisionByZero,             // 0で割ろうとした
+    InvalidOpcode(u8),          // 知らない命令が来た
+    InvalidMemoryAccess(usize), // メモリ範囲外にアクセスした
+    UnexpectedEof,              // 命令の途中でファイルが終わった
+    UnknownLabel(String),       // 未定義ラベル
+}
+impl std::fmt::Display for VmError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StackUnderflow => write!(f, "Stack underflow"),
+            Self::StackOverflow => write!(f, "Stack Overflow"),
+            Self::DivisionByZero => write!(f, "Division by zero"),
+            Self::InvalidOpcode(opcode) => write!(f, "Invalid Opcode: {:02X}", opcode),
+            Self::InvalidMemoryAccess(dst) => write!(f, "Invalid memory access: {:02X}", dst),
+            Self::UnexpectedEof => write!(f, "Unexpected EOF"),
+            Self::UnknownLabel(label) => write!(f, "Unknown lable: {label}"),
+            _ => write!(f, "{:?}", self),
+        }
+    }
+}
+
 struct VM {
     pc: usize,
     stack: Vec<u8>,
@@ -19,10 +44,6 @@ impl VM {
             memory: vec![None; MEMORY_SIZE],
             tokens,
         }
-    }
-    
-    fn next_byte(&mut self) {
-    	
     }
 
     fn run(&mut self) {
