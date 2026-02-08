@@ -195,7 +195,7 @@ impl VM {
                     }
                 }
             } else {
-                irregular("Include invalid OpCode", token);
+                return Err(VmError::InvalidOpcode(token));
             }
 
             self.pc += 1;
