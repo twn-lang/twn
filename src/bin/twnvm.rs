@@ -1,31 +1,226 @@
 use std::process::exit;
 
-use twn::utils::irregular;
+use twn::*;
 
 const MEMORY_SIZE: usize = 256;
+const STACK_SIZE: usize = 256;
+const BYTE_SIZE: u8 = 1;
 
-/*
- * OpCode
- * 0x01: PUSH
- * 0x02: POP
- * 0x10: ADD
- * 0x11: SUB
- * 0x12: MUL
- * 0x13: DIV
- * 0x14: MOD
- * 0x15: ADDI
- * 0x16: SUBI
- * 0x17: MULI
- * 0x18: DIVI
- * 0x19: MODI
- * 0x20: JZ
- * 0x21: JMZ
- * 0x30: STORE
- * 0x31: LOAD
- * 0x90: PRINT
- * 0x91: DUMP
- * 0xFF: FIN
- */
+#[derive(Debug)]
+enum VmError {
+    StackUnderflow,             // POPしようとしたがスタックが空
+    StackOverflow,              // スタックが上限を超えた
+    DivisionByZero,             // 0で割ろうとした
+    InvalidOpcode(u8),          // 知らない命令が来た
+    InvalidMemoryAccess(usize), // メモリ範囲外にアクセスした
+    UninitializedMemory(usize), // まだ値の入っていないメモリにアクセスした
+    UnexpectedEof,              // 命令の途中でファイルが終わった
+}
+impl std::fmt::Display for VmError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::StackUnderflow => write!(f, "Stack underflow"),
+            Self::StackOverflow => write!(f, "Stack Overflow"),
+            Self::DivisionByZero => write!(f, "Division by zero"),
+            Self::InvalidOpcode(opcode) => write!(f, "Invalid Opcode: {:02X}", opcode),
+            Self::InvalidMemoryAccess(dst) => write!(f, "Invalid memory access: {:02X}", dst),
+            Self::UninitializedMemory(dst) => write!(f, "Not exist designated memory: {:02X}", dst),
+            Self::UnexpectedEof => write!(f, "Unexpected EOF"),
+        }
+    }
+}
+
+struct VM {
+    pub pc: usize,
+    stack: Vec<u8>,
+    memory: Vec<Option<u8>>,
+    tokens: Vec<u8>,
+}
+impl VM {
+    fn new(tokens: Vec<u8>) -> Self {
+        Self {
+            pc: 0,
+            stack: Vec::new(),
+            memory: vec![None; MEMORY_SIZE],
+            tokens,
+        }
+    }
+
+    fn next_byte(&mut self) -> Result<u8, VmError> {
+        if self.tokens.len() - 1 <= self.pc {
+            return Err(VmError::UnexpectedEof);
+        }
+
+        self.pc += 1 * (BYTE_SIZE as usize);
+
+        Ok(self.tokens[self.pc])
+    }
+
+    fn push_stack(&mut self, content: u8) -> Result<(), VmError> {
+        if STACK_SIZE <= self.stack.len() {
+            return Err(VmError::StackOverflow);
+        }
+
+        self.stack.push(content);
+
+        Ok(())
+    }
+
+    fn pop_stack(&mut self) -> Result<u8, VmError> {
+        if self.stack.is_empty() {
+            return Err(VmError::StackUnderflow);
+        }
+
+        Ok(self.stack.pop().unwrap())
+    }
+
+    fn store_memory(&mut self, content: u8, dst: usize) -> Result<(), VmError> {
+        if MEMORY_SIZE <= dst {
+            return Err(VmError::InvalidMemoryAccess(dst));
+        }
+
+        self.memory[dst] = Some(content);
+
+        Ok(())
+    }
+
+    fn load_memory(&self, dst: usize) -> Result<Option<u8>, VmError> {
+        if MEMORY_SIZE <= dst {
+            return Err(VmError::InvalidMemoryAccess(dst));
+        }
+
+        match self.memory[dst] {
+            Some(content) => return Ok(Some(content)),
+            None => return Err(VmError::UninitializedMemory(dst)),
+        }
+    }
+
+    fn run(&mut self) -> Result<(), VmError> {
+        while self.pc < self.tokens.len() {
+            let token = self.tokens[self.pc];
+
+            if let Some(opcode) = OpCode::from_u8(token) {
+                match opcode {
+                    OpCode::Push => {
+                        let val = self.next_byte()?;
+                        self.push_stack(val)?;
+                    }
+                    OpCode::Pop => {
+                        self.pop_stack()?;
+                    }
+                    OpCode::Add => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a.saturating_add(b))?;
+                    }
+                    OpCode::Sub => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a.saturating_sub(b))?;
+                    }
+                    OpCode::Mul => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a.saturating_mul(b))?;
+                    }
+                    OpCode::Div => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        if b == 0 {
+                            return Err(VmError::DivisionByZero);
+                        }
+
+                        self.push_stack(a.saturating_div(b))?;
+                    }
+                    OpCode::Mod => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a % b)?;
+                    }
+                    OpCode::AddI => {
+                        let b: u8 = self.next_byte()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a.saturating_add(b))?;
+                    }
+                    OpCode::SubI => {
+                        let b: u8 = self.next_byte()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a.saturating_sub(b))?;
+                    }
+                    OpCode::MulI => {
+                        let b: u8 = self.next_byte()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a.saturating_mul(b))?;
+                    }
+                    OpCode::DivI => {
+                        let b: u8 = self.next_byte()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        if b == 0 {
+                            return Err(VmError::DivisionByZero);
+                        }
+
+                        self.push_stack(a.saturating_div(b))?;
+                    }
+                    OpCode::ModI => {
+                        let b: u8 = self.next_byte()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(a % b)?;
+                    }
+                    OpCode::Jz => {
+                        let flg = self.pop_stack()?;
+                        let dst = self.next_byte()?;
+                        if flg == 0 {
+                            self.pc = dst as usize;
+                            continue;
+                        }
+                    }
+                    OpCode::Jmz => {
+                        let dst = self.next_byte()?;
+                        self.pc = dst as usize;
+                        continue;
+                    }
+                    OpCode::Store => {
+                        let mem_dst = self.next_byte()? as usize;
+                        let target = self.pop_stack()?;
+                        self.store_memory(target, mem_dst)?;
+                    }
+                    OpCode::Load => {
+                        let mem_dst = self.next_byte()? as usize;
+
+                        let target = self.load_memory(mem_dst)?.unwrap();
+                        self.push_stack(target)?;
+                    }
+                    OpCode::Print => {
+                        let value = self.pop_stack()?;
+                        println!("{value}");
+                    }
+                    OpCode::Dump => {
+                        println!("{:?}", self.stack);
+                    }
+                    OpCode::Fin => {
+                        exit(0);
+                    }
+                }
+            } else {
+                return Err(VmError::InvalidOpcode(token));
+            }
+
+            self.pc += 1;
+        }
+
+        Ok(())
+    }
+}
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
@@ -42,165 +237,10 @@ fn main() {
         .map(|token| u8::from_str_radix(token, 16).expect("Included invalid token"))
         .collect::<Vec<u8>>();
 
-    let mut pc: usize = 0;
-    let mut stack: Vec<u8> = Vec::new();
-    let mut memory: Vec<Option<u8>> = vec![None; MEMORY_SIZE];
+    let mut vm: VM = VM::new(tokens);
 
-    while pc < tokens.len() {
-        let token = tokens[pc];
-
-        match token {
-            // PUSH
-            0x01 => {
-                pc += 1;
-                stack.push(tokens[pc]);
-            }
-            // POP
-            0x02 => {
-                if stack.is_empty() {
-                    irregular("Stack is empty", token);
-                }
-                stack.pop().unwrap();
-            }
-            // ADD
-            0x10 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_add(b));
-            }
-            // SUB
-            0x11 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_sub(b));
-            }
-            // MUL
-            0x12 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_mul(b));
-            }
-            // DIV
-            0x13 => {
-                let b: u8 = stack.pop().unwrap_or_default();
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_div(b));
-            }
-            // MOD
-            0x14 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a % b);
-            }
-            // ADDI
-            0x15 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_add(b));
-            }
-            // SUBI
-            0x16 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_sub(b));
-            }
-            // MULI
-            0x17 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_mul(b));
-            }
-            // DIVI
-            0x18 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a.saturating_div(b));
-            }
-            // MODI
-            0x19 => {
-                pc += 1;
-                let b: u8 = tokens[pc];
-                let a: u8 = stack.pop().unwrap_or_default();
-
-                stack.push(a % b);
-            }
-            // JZ
-            0x20 => {
-                if let Some(flg) = stack.pop() {
-                    pc += 1;
-                    if flg == 0 {
-                        let dst = tokens[pc];
-                        pc = dst as usize;
-                        continue;
-                    }
-                } else {
-                    irregular("Not exist flag", token);
-                }
-            }
-            // JMZ
-            0x21 => {
-                pc += 1;
-                let dst = tokens[pc];
-                pc = dst as usize;
-                continue;
-            }
-            // STORE
-            0x30 => {
-                pc += 1;
-                let mem_dst: usize = tokens[pc] as usize;
-
-                if let Some(target) = stack.pop() {
-                    memory[mem_dst] = Some(target);
-                } else {
-                    irregular("Stack is empty", token);
-                }
-            }
-            // LOAD
-            0x31 => {
-                pc += 1;
-                let mem_dst: usize = tokens[pc] as usize;
-
-                if let Some(target) = memory[mem_dst] {
-                    stack.push(target);
-                } else {
-                    irregular("Not exist in designated address", token);
-                }
-            }
-            // PRINT
-            0x90 => {
-                if let Some(value) = stack.pop() {
-                    println!("{}", value);
-                } else {
-                    irregular("Stack is empty", token);
-                }
-            }
-            // DUMP
-            0x91 => {
-                println!("{:?}", stack);
-            }
-            // FIN
-            0xFF => {
-                exit(0);
-            }
-            _ => {
-                irregular("Include invalid OpCode", token);
-            }
-        }
-
-        pc += 1;
+    if let Err(e) = vm.run() {
+        eprintln!("Error: {} (at address 0x{:02X})", e, vm.pc);
+        std::process::exit(1);
     }
 }
