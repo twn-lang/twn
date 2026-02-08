@@ -31,7 +31,7 @@ impl std::fmt::Display for VmError {
 }
 
 struct VM {
-    pc: usize,
+    pub pc: usize,
     stack: Vec<u8>,
     memory: Vec<Option<u8>>,
     tokens: Vec<u8>,
@@ -191,7 +191,7 @@ impl VM {
     }
 }
 
-fn main() -> Result<(), VmError> {
+fn main() {
     let args = std::env::args().collect::<Vec<String>>();
 
     if args.len() < 2 {
@@ -208,7 +208,8 @@ fn main() -> Result<(), VmError> {
 
     let mut vm: VM = VM::new(tokens);
 
-    vm.run()?;
-
-    Ok(())
+    if let Err(e) = vm.run() {
+        eprintln!("Error: {} (at address 0x{:02X})", e, vm.pc);
+        std::process::exit(1);
+    }
 }
