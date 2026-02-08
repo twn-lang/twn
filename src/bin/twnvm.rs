@@ -46,15 +46,25 @@ impl VM {
         }
     }
 
-    fn run(&mut self) {
+    fn next_byte(&mut self) -> Result<u8, VmError> {
+        if self.tokens.len() - 1 <= self.pc {
+            return Err(VmError::UnexpectedEof);
+        }
+
+        self.pc += 1 * (BYTE_SIZE as usize);
+
+        Ok(self.tokens[self.pc])
+    }
+
+    fn run(&mut self) -> Result<(), VmError> {
         while self.pc < self.tokens.len() {
             let token = self.tokens[self.pc];
 
             if let Some(opcode) = OpCode::from_u8(token) {
                 match opcode {
                     OpCode::Push => {
-                        self.pc += 1;
-                        self.stack.push(self.tokens[self.pc]);
+                        let val = self.next_byte()?;
+                        self.stack.push(val);
                     }
                     OpCode::Pop => {
                         if self.stack.is_empty() {
@@ -87,52 +97,45 @@ impl VM {
                         self.stack.push(a.saturating_div(b));
                     }
                     OpCode::Mod => {
-                        self.pc += 1;
                         let b: u8 = self.stack.pop().unwrap_or_default();
                         let a: u8 = self.stack.pop().unwrap_or_default();
 
                         self.stack.push(a % b);
                     }
                     OpCode::AddI => {
-                        self.pc += 1;
-                        let b: u8 = self.tokens[self.pc];
+                        let b: u8 = self.next_byte()?;
                         let a: u8 = self.stack.pop().unwrap_or_default();
 
                         self.stack.push(a.saturating_add(b));
                     }
                     OpCode::SubI => {
-                        self.pc += 1;
-                        let b: u8 = self.tokens[self.pc];
+                        let b: u8 = self.next_byte()?;
                         let a: u8 = self.stack.pop().unwrap_or_default();
 
                         self.stack.push(a.saturating_sub(b));
                     }
                     OpCode::MulI => {
-                        self.pc += 1;
-                        let b: u8 = self.tokens[self.pc];
+                        let b: u8 = self.next_byte()?;
                         let a: u8 = self.stack.pop().unwrap_or_default();
 
                         self.stack.push(a.saturating_mul(b));
                     }
                     OpCode::DivI => {
-                        self.pc += 1;
-                        let b: u8 = self.tokens[self.pc];
+                        let b: u8 = self.next_byte()?;
                         let a: u8 = self.stack.pop().unwrap_or_default();
 
                         self.stack.push(a.saturating_div(b));
                     }
                     OpCode::ModI => {
-                        self.pc += 1;
-                        let b: u8 = self.tokens[self.pc];
+                        let b: u8 = self.next_byte()?;
                         let a: u8 = self.stack.pop().unwrap_or_default();
 
                         self.stack.push(a % b);
                     }
                     OpCode::Jz => {
                         if let Some(flg) = self.stack.pop() {
-                            self.pc += 1;
                             if flg == 0 {
-                                let dst = self.tokens[self.pc];
+                                let dst = self.next_byte()?;
                                 self.pc = dst as usize;
                                 continue;
                             }
@@ -141,14 +144,12 @@ impl VM {
                         }
                     }
                     OpCode::Jmz => {
-                        self.pc += 1;
-                        let dst = self.tokens[self.pc];
+                        let dst = self.next_byte()?;
                         self.pc = dst as usize;
                         continue;
                     }
                     OpCode::Store => {
-                        self.pc += 1;
-                        let mem_dst: usize = self.tokens[self.pc] as usize;
+                        let mem_dst = self.next_byte()? as usize;
 
                         if let Some(target) = self.stack.pop() {
                             self.memory[mem_dst] = Some(target);
@@ -157,8 +158,7 @@ impl VM {
                         }
                     }
                     OpCode::Load => {
-                        self.pc += 1;
-                        let mem_dst: usize = self.tokens[self.pc] as usize;
+                        let mem_dst = self.next_byte()? as usize;
 
                         if let Some(target) = self.memory[mem_dst] {
                             self.stack.push(target);
@@ -186,10 +186,12 @@ impl VM {
 
             self.pc += 1;
         }
+
+        Ok(())
     }
 }
 
-fn main() {
+fn main() -> Result<(), VmError> {
     let args = std::env::args().collect::<Vec<String>>();
 
     if args.len() < 2 {
@@ -205,5 +207,8 @@ fn main() {
         .collect::<Vec<u8>>();
 
     let mut vm: VM = VM::new(tokens);
-    vm.run();
+
+    vm.run()?;
+
+    Ok(())
 }
