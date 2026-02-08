@@ -110,6 +110,10 @@ impl VM {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
 
+                        if b == 0 {
+                            return Err(VmError::DivisionByZero);
+                        }
+
                         self.push_stack(a.saturating_div(b))?;
                     }
                     OpCode::Mod => {
@@ -139,6 +143,10 @@ impl VM {
                     OpCode::DivI => {
                         let b: u8 = self.next_byte()?;
                         let a: u8 = self.pop_stack()?;
+
+                        if b == 0 {
+                            return Err(VmError::DivisionByZero);
+                        }
 
                         self.push_stack(a.saturating_div(b))?;
                     }
