@@ -15,7 +15,6 @@ enum VmError {
     InvalidMemoryAccess(usize), // メモリ範囲外にアクセスした
     UninitializedMemory(usize), // まだ値の入っていないメモリにアクセスした
     UnexpectedEof,              // 命令の途中でファイルが終わった
-    UnknownLabel(String),       // 未定義ラベル
 }
 impl std::fmt::Display for VmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -27,8 +26,6 @@ impl std::fmt::Display for VmError {
             Self::InvalidMemoryAccess(dst) => write!(f, "Invalid memory access: {:02X}", dst),
             Self::UninitializedMemory(dst) => write!(f, "Not exist designated memory: {:02X}", dst),
             Self::UnexpectedEof => write!(f, "Unexpected EOF"),
-            Self::UnknownLabel(label) => write!(f, "Unknown lable: {label}"),
-            _ => write!(f, "{:?}", self),
         }
     }
 }
