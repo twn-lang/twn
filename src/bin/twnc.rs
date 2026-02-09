@@ -44,6 +44,8 @@ fn main() {
         }
     }
 
+    label_count = 0;
+
     for split_token in split_tokens.iter() {
         for token in split_token.split_whitespace() {
             if token.starts_with(';') {
