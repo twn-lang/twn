@@ -44,8 +44,6 @@ fn main() {
         }
     }
 
-    label_count = 0;
-
     for split_token in split_tokens.iter() {
         for token in split_token.split_whitespace() {
             if token.starts_with(';') {
@@ -53,6 +51,18 @@ fn main() {
             }
 
             let token = token.to_uppercase();
+
+            if token.starts_with("0X") {
+                let token = token.strip_prefix("0X").unwrap();
+                write!(
+                    output_file,
+                    "{:02X} ",
+                    u8::from_str_radix(token, 16).unwrap()
+                )
+                .expect("Failed write in file");
+
+                continue;
+            }
 
             if let Some(opcode) = OpCode::from_str(token.as_str()) {
                 write!(output_file, "{:02X} ", opcode as u8).expect("Failed write in file");
