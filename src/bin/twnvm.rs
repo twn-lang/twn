@@ -234,6 +234,18 @@ impl VM {
                         let target = self.load_memory(mem_dst)?.unwrap();
                         self.push_stack(target)?;
                     }
+                    OpCode::Dup => {
+                        let a = self.pop_stack()?;
+                        self.push_stack(a)?;
+                        self.push_stack(a)?;
+                    }
+                    OpCode::Swap => {
+                        let a = self.pop_stack()?;
+                        let b = self.pop_stack()?;
+
+                        self.push_stack(a)?;
+                        self.push_stack(b)?;
+                    }
                     OpCode::Call => {
                         let dst = self.next_byte()? as usize;
                         self.push_call(self.pc)?;
