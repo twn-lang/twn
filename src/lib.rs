@@ -16,6 +16,10 @@
  * 0x21: JMZ
  * 0x30: STORE
  * 0x31: LOAD
+ * 0x32: STOREI
+ * 0x33: LOADI
+ * 0x34: DUP
+ * 0x35: SWAP
  * 0x40: CALL
  * 0x41: RET
  * 0x90: PRINT
@@ -44,6 +48,8 @@ pub enum OpCode {
     Load = 0x31,
     StoreI = 0x32,
     LoadI = 0x33,
+    Dup = 0x34,
+    Swap = 0x35,
     Call = 0x40,
     Ret = 0x41,
     Print = 0x90,
@@ -72,6 +78,8 @@ impl OpCode {
             0x31 => Some(Self::Load),
             0x32 => Some(Self::StoreI),
             0x33 => Some(Self::LoadI),
+            0x34 => Some(Self::Dup),
+            0x35 => Some(Self::Swap),
             0x40 => Some(Self::Call),
             0x41 => Some(Self::Ret),
             0x90 => Some(Self::Print),
@@ -101,6 +109,8 @@ impl OpCode {
             "LOAD" => Some(Self::Load),
             "STOREI" => Some(Self::StoreI),
             "LOADI" => Some(Self::LoadI),
+            "DUP" => Some(Self::Dup),
+            "SWAP" => Some(Self::Swap),
             "CALL" => Some(Self::Call),
             "RET" => Some(Self::Ret),
             "PRINT" => Some(Self::Print),
