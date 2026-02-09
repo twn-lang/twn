@@ -1,10 +1,3 @@
-use std::process::exit;
-
-pub fn irregular(statement: &str, opcode: u8) {
-    eprintln!("{statement} (opcode: {opcode:02X})");
-    exit(1);
-}
-
 /*
  * OpCode
  * 0x01: PUSH
@@ -47,6 +40,8 @@ pub enum OpCode {
     Jmz = 0x21,
     Store = 0x30,
     Load = 0x31,
+    StoreI = 0x32,
+    LoadI = 0x33,
     Print = 0x90,
     Dump = 0x91,
     Fin = 0xFF,
@@ -71,6 +66,8 @@ impl OpCode {
             0x21 => Some(Self::Jmz),
             0x30 => Some(Self::Store),
             0x31 => Some(Self::Load),
+            0x32 => Some(Self::StoreI),
+            0x33 => Some(Self::LoadI),
             0x90 => Some(Self::Print),
             0x91 => Some(Self::Dump),
             0xFF => Some(Self::Fin),
@@ -96,6 +93,8 @@ impl OpCode {
             "JMZ" => Some(Self::Jmz),
             "STORE" => Some(Self::Store),
             "LOAD" => Some(Self::Load),
+            "STOREI" => Some(Self::StoreI),
+            "LOADI" => Some(Self::LoadI),
             "PRINT" => Some(Self::Print),
             "DUMP" => Some(Self::Dump),
             "FIN" => Some(Self::Fin),
