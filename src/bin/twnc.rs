@@ -30,6 +30,8 @@ fn main() {
 
     for split_token in split_tokens.iter() {
         for token in split_token.split_whitespace() {
+            let token = token.to_uppercase();
+
             if token.starts_with(';') {
                 break;
             }

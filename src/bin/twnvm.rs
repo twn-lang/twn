@@ -4,12 +4,15 @@ use twn::*;
 
 const MEMORY_SIZE: usize = 256;
 const STACK_SIZE: usize = 256;
+const CALL_SIZE: usize = 256;
 const BYTE_SIZE: u8 = 1;
 
 #[derive(Debug)]
 enum VmError {
     StackUnderflow,             // POPしようとしたがスタックが空
     StackOverflow,              // スタックが上限を超えた
+    CallUnderflow,              // POPしようとしたがコールスタックが空
+    CallOverflow,               // コールスタックが上限を超えた
     DivisionByZero,             // 0で割ろうとした
     InvalidOpcode(u8),          // 知らない命令が来た
     InvalidMemoryAccess(usize), // メモリ範囲外にアクセスした
@@ -21,6 +24,8 @@ impl std::fmt::Display for VmError {
         match self {
             Self::StackUnderflow => write!(f, "Stack underflow"),
             Self::StackOverflow => write!(f, "Stack Overflow"),
+            Self::CallUnderflow => write!(f, "Call underflow"),
+            Self::CallOverflow => write!(f, "Call Overflow"),
             Self::DivisionByZero => write!(f, "Division by zero"),
             Self::InvalidOpcode(opcode) => write!(f, "Invalid Opcode: {:02X}", opcode),
             Self::InvalidMemoryAccess(dst) => write!(f, "Invalid memory access: {:02X}", dst),
@@ -34,6 +39,7 @@ struct VM {
     pub pc: usize,
     stack: Vec<u8>,
     memory: Vec<Option<u8>>,
+    call: Vec<usize>,
     tokens: Vec<u8>,
 }
 impl VM {
@@ -42,6 +48,7 @@ impl VM {
             pc: 0,
             stack: Vec::new(),
             memory: vec![None; MEMORY_SIZE],
+            call: Vec::new(),
             tokens,
         }
     }
@@ -93,6 +100,24 @@ impl VM {
             Some(content) => return Ok(Some(content)),
             None => return Err(VmError::UninitializedMemory(dst)),
         }
+    }
+
+    fn push_call(&mut self, content: usize) -> Result<(), VmError> {
+        if CALL_SIZE <= self.call.len() {
+            return Err(VmError::CallOverflow);
+        }
+
+        self.call.push(content);
+
+        Ok(())
+    }
+
+    fn pop_call(&mut self) -> Result<usize, VmError> {
+        if self.call.is_empty() {
+            return Err(VmError::CallUnderflow);
+        }
+
+        Ok(self.call.pop().unwrap())
     }
 
     fn run(&mut self) -> Result<(), VmError> {
@@ -208,6 +233,17 @@ impl VM {
                         let mem_dst = self.next_byte()? as usize;
                         let target = self.load_memory(mem_dst)?.unwrap();
                         self.push_stack(target)?;
+                    }
+                    OpCode::Call => {
+                        let dst = self.next_byte()? as usize;
+                        self.push_call(self.pc)?;
+                        self.pc = dst;
+
+                        continue;
+                    }
+                    OpCode::Ret => {
+                        let dst = self.pop_call()?;
+                        self.pc = dst;
                     }
                     OpCode::Print => {
                         let value = self.pop_stack()?;
