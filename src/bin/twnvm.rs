@@ -190,13 +190,22 @@ impl VM {
                         continue;
                     }
                     OpCode::Store => {
-                        let mem_dst = self.next_byte()? as usize;
+                        let mem_dst = self.pop_stack()? as usize;
                         let target = self.pop_stack()?;
                         self.store_memory(target, mem_dst)?;
                     }
                     OpCode::Load => {
+                        let mem_dst = self.pop_stack()? as usize;
+                        let target = self.load_memory(mem_dst)?.unwrap();
+                        self.push_stack(target)?;
+                    }
+                    OpCode::StoreI => {
                         let mem_dst = self.next_byte()? as usize;
-
+                        let target = self.pop_stack()?;
+                        self.store_memory(target, mem_dst)?;
+                    }
+                    OpCode::LoadI => {
+                        let mem_dst = self.next_byte()? as usize;
                         let target = self.load_memory(mem_dst)?.unwrap();
                         self.push_stack(target)?;
                     }
