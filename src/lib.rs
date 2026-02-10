@@ -22,8 +22,6 @@
  * 0x35: SWAP
  * 0x40: CALL
  * 0x41: RET
- * 0x90: PRINT
- * 0x91: DUMP
  * 0xFF: FIN
  */
 
@@ -52,8 +50,6 @@ pub enum OpCode {
     Swap = 0x35,
     Call = 0x40,
     Ret = 0x41,
-    Print = 0x90,
-    Dump = 0x91,
     Fin = 0xFF,
 }
 
@@ -82,8 +78,6 @@ impl OpCode {
             0x35 => Some(Self::Swap),
             0x40 => Some(Self::Call),
             0x41 => Some(Self::Ret),
-            0x90 => Some(Self::Print),
-            0x91 => Some(Self::Dump),
             0xFF => Some(Self::Fin),
             _ => None,
         }
@@ -113,8 +107,6 @@ impl OpCode {
             "SWAP" => Some(Self::Swap),
             "CALL" => Some(Self::Call),
             "RET" => Some(Self::Ret),
-            "PRINT" => Some(Self::Print),
-            "DUMP" => Some(Self::Dump),
             "FIN" => Some(Self::Fin),
             _ => None,
         }

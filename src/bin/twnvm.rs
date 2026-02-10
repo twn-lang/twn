@@ -257,20 +257,6 @@ impl VM {
                         let dst = self.pop_call()?;
                         self.pc = dst;
                     }
-                    OpCode::Print => {
-                        let value = self.pop_stack()?;
-                        println!("{value}");
-                    }
-                    OpCode::Dump => {
-                        println!("STACK : {:?}", self.stack);
-                        let rle = self
-                            .memory
-                            .chunk_by(|&a, &b| a == b)
-                            .map(|chunk| (chunk[0], chunk.len()))
-                            .collect::<Vec<(Option<u8>, usize)>>();
-                        println!("MEMORY: {:?}", rle);
-                        println!();
-                    }
                     OpCode::Fin => {
                         exit(0);
                     }
