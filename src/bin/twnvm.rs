@@ -298,6 +298,42 @@ impl<R: Read, W: Write> VM<R, W> {
 
                         self.push_stack(a % b)?;
                     }
+                    OpCode::Eq => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(if a == b { 0 } else { 1 })?;
+                    }
+                    OpCode::Neq => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(if a != b { 0 } else { 1 })?;
+                    }
+                    OpCode::Lt => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(if a < b { 0 } else { 1 })?;
+                    }
+                    OpCode::Le => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(if a <= b { 0 } else { 1 })?;
+                    }
+                    OpCode::Gt => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(if a > b { 0 } else { 1 })?;
+                    }
+                    OpCode::Ge => {
+                        let b: u8 = self.pop_stack()?;
+                        let a: u8 = self.pop_stack()?;
+
+                        self.push_stack(if a >= b { 0 } else { 1 })?;
+                    }
                     OpCode::Jz => {
                         let flg = self.pop_stack()?;
                         let dst = self.next_byte()?;
