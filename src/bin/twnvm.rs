@@ -196,11 +196,21 @@ impl<R: Read, W: Write> VM<R, W> {
     }
 
     fn run(&mut self) -> Result<(), VmError> {
-        while self.pc < self.tokens.len() {
+        while !self.halted && (self.pc < self.tokens.len()) {
             let token = self.tokens[self.pc];
 
             if let Some(opcode) = OpCode::from_u8(token) {
                 match opcode {
+                    OpCode::SysCall => {
+                        let n = self.pop_stack()?;
+                        match n {
+                            0 => self.sys_read()?,
+                            1 => self.sys_print()?,
+                            2 => self.sys_dump(),
+                            3 => self.sys_exit()?,
+                            _ => return Err(VmError::UnexpectedSysCall(n)),
+                        };
+                    }
                     OpCode::Push => {
                         let val = self.next_byte()?;
                         self.push_stack(val)?;
@@ -333,7 +343,8 @@ impl<R: Read, W: Write> VM<R, W> {
                         self.pc = dst;
                     }
                     OpCode::Fin => {
-                        exit(0);
+                        self.halted = true;
+                        self.exit_code = 0;
                     }
                 }
             } else {
@@ -362,10 +373,12 @@ fn main() {
         .map(|token| u8::from_str_radix(token, 16).expect("Included invalid token"))
         .collect::<Vec<u8>>();
 
-    let mut vm: VM = VM::new(tokens);
+    let mut vm = VM::new(tokens, stdin().lock(), stdout().lock());
 
     if let Err(e) = vm.run() {
         eprintln!("Error: {} (at address 0x{:02X})", e, vm.pc);
         std::process::exit(1);
     }
+
+    std::process::exit(vm.exit_code as i32);
 }
