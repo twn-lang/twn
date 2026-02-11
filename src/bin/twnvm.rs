@@ -218,6 +218,18 @@ impl<R: Read, W: Write> VM<R, W> {
                     OpCode::Pop => {
                         self.pop_stack()?;
                     }
+                    OpCode::Dup => {
+                        let a = self.pop_stack()?;
+                        self.push_stack(a)?;
+                        self.push_stack(a)?;
+                    }
+                    OpCode::Swap => {
+                        let a = self.pop_stack()?;
+                        let b = self.pop_stack()?;
+
+                        self.push_stack(a)?;
+                        self.push_stack(b)?;
+                    }
                     OpCode::Add => {
                         let b: u8 = self.pop_stack()?;
                         let a: u8 = self.pop_stack()?;
@@ -318,18 +330,6 @@ impl<R: Read, W: Write> VM<R, W> {
                         let mem_dst = self.next_byte()? as usize;
                         let target = self.load_memory(mem_dst)?.unwrap();
                         self.push_stack(target)?;
-                    }
-                    OpCode::Dup => {
-                        let a = self.pop_stack()?;
-                        self.push_stack(a)?;
-                        self.push_stack(a)?;
-                    }
-                    OpCode::Swap => {
-                        let a = self.pop_stack()?;
-                        let b = self.pop_stack()?;
-
-                        self.push_stack(a)?;
-                        self.push_stack(b)?;
                     }
                     OpCode::Call => {
                         let dst = self.next_byte()? as usize;

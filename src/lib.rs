@@ -3,6 +3,8 @@
  * 0x00: SYSCALL
  * 0x01: PUSH
  * 0x02: POP
+ * 0x03: DUP
+ * 0x04: SWAP
  * 0x10: ADD
  * 0x11: SUB
  * 0x12: MUL
@@ -19,8 +21,6 @@
  * 0x31: LOAD
  * 0x32: STOREI
  * 0x33: LOADI
- * 0x34: DUP
- * 0x35: SWAP
  * 0x40: CALL
  * 0x41: RET
  * 0xFF: FIN
@@ -32,6 +32,8 @@ pub enum OpCode {
     SysCall = 0x00,
     Push = 0x01,
     Pop = 0x02,
+    Dup = 0x03,
+    Swap = 0x04,
     Add = 0x10,
     Sub = 0x11,
     Mul = 0x12,
@@ -48,8 +50,6 @@ pub enum OpCode {
     Load = 0x31,
     StoreI = 0x32,
     LoadI = 0x33,
-    Dup = 0x34,
-    Swap = 0x35,
     Call = 0x40,
     Ret = 0x41,
     Fin = 0xFF,
@@ -61,6 +61,8 @@ impl OpCode {
             0x00 => Some(Self::SysCall),
             0x01 => Some(Self::Push),
             0x02 => Some(Self::Pop),
+            0x03 => Some(Self::Dup),
+            0x04 => Some(Self::Swap),
             0x10 => Some(Self::Add),
             0x11 => Some(Self::Sub),
             0x12 => Some(Self::Mul),
@@ -77,8 +79,6 @@ impl OpCode {
             0x31 => Some(Self::Load),
             0x32 => Some(Self::StoreI),
             0x33 => Some(Self::LoadI),
-            0x34 => Some(Self::Dup),
-            0x35 => Some(Self::Swap),
             0x40 => Some(Self::Call),
             0x41 => Some(Self::Ret),
             0xFF => Some(Self::Fin),
@@ -91,6 +91,8 @@ impl OpCode {
             "SYSCALL" => Some(Self::SysCall),
             "PUSH" => Some(Self::Push),
             "POP" => Some(Self::Pop),
+            "DUP" => Some(Self::Dup),
+            "SWAP" => Some(Self::Swap),
             "ADD" => Some(Self::Add),
             "SUB" => Some(Self::Sub),
             "MUL" => Some(Self::Mul),
@@ -107,8 +109,6 @@ impl OpCode {
             "LOAD" => Some(Self::Load),
             "STOREI" => Some(Self::StoreI),
             "LOADI" => Some(Self::LoadI),
-            "DUP" => Some(Self::Dup),
-            "SWAP" => Some(Self::Swap),
             "CALL" => Some(Self::Call),
             "RET" => Some(Self::Ret),
             "FIN" => Some(Self::Fin),
