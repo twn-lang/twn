@@ -1,5 +1,6 @@
 /*
  * OpCode
+ * 0x00: SYSCALL
  * 0x01: PUSH
  * 0x02: POP
  * 0x10: ADD
@@ -22,14 +23,13 @@
  * 0x35: SWAP
  * 0x40: CALL
  * 0x41: RET
- * 0x90: PRINT
- * 0x91: DUMP
  * 0xFF: FIN
  */
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum OpCode {
+    SysCall = 0x00,
     Push = 0x01,
     Pop = 0x02,
     Add = 0x10,
@@ -52,14 +52,13 @@ pub enum OpCode {
     Swap = 0x35,
     Call = 0x40,
     Ret = 0x41,
-    Print = 0x90,
-    Dump = 0x91,
     Fin = 0xFF,
 }
 
 impl OpCode {
     pub fn from_u8(n: u8) -> Option<Self> {
         match n {
+            0x00 => Some(Self::SysCall),
             0x01 => Some(Self::Push),
             0x02 => Some(Self::Pop),
             0x10 => Some(Self::Add),
@@ -82,8 +81,6 @@ impl OpCode {
             0x35 => Some(Self::Swap),
             0x40 => Some(Self::Call),
             0x41 => Some(Self::Ret),
-            0x90 => Some(Self::Print),
-            0x91 => Some(Self::Dump),
             0xFF => Some(Self::Fin),
             _ => None,
         }
@@ -91,6 +88,7 @@ impl OpCode {
 
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
+            "SYSCALL" => Some(Self::SysCall),
             "PUSH" => Some(Self::Push),
             "POP" => Some(Self::Pop),
             "ADD" => Some(Self::Add),
@@ -113,8 +111,6 @@ impl OpCode {
             "SWAP" => Some(Self::Swap),
             "CALL" => Some(Self::Call),
             "RET" => Some(Self::Ret),
-            "PRINT" => Some(Self::Print),
-            "DUMP" => Some(Self::Dump),
             "FIN" => Some(Self::Fin),
             _ => None,
         }

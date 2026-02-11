@@ -1,3 +1,4 @@
+use std::io::{Read, Write, stdin, stdout};
 use std::process::exit;
 
 use twn::*;
@@ -6,6 +7,18 @@ const MEMORY_SIZE: usize = 256;
 const STACK_SIZE: usize = 256;
 const CALL_SIZE: usize = 256;
 const BYTE_SIZE: u8 = 1;
+
+#[derive(Debug)]
+enum SysError {
+    InvalidCharacter,
+}
+impl std::fmt::Display for SysError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidCharacter => write!(f, "Invalid character"),
+        }
+    }
+}
 
 #[derive(Debug)]
 enum VmError {
@@ -17,7 +30,10 @@ enum VmError {
     InvalidOpcode(u8),          // 知らない命令が来た
     InvalidMemoryAccess(usize), // メモリ範囲外にアクセスした
     UninitializedMemory(usize), // まだ値の入っていないメモリにアクセスした
+    UnexpectedSysCall(u8),      // 知らないシステムコールが来た
     UnexpectedEof,              // 命令の途中でファイルが終わった
+
+    SysError(SysError), // SysCallでエラーが発生した
 }
 impl std::fmt::Display for VmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -30,26 +46,39 @@ impl std::fmt::Display for VmError {
             Self::InvalidOpcode(opcode) => write!(f, "Invalid Opcode: {:02X}", opcode),
             Self::InvalidMemoryAccess(dst) => write!(f, "Invalid memory access: {:02X}", dst),
             Self::UninitializedMemory(dst) => write!(f, "Not exist designated memory: {:02X}", dst),
+            Self::UnexpectedSysCall(n) => write!(f, "Unexpected SysCall: {:02X}", n),
             Self::UnexpectedEof => write!(f, "Unexpected EOF"),
+
+            Self::SysError(e) => write!(f, "SysCall Error: {}", e),
         }
     }
 }
 
-struct VM {
+struct VM<R: Read, W: Write> {
     pub pc: usize,
     stack: Vec<u8>,
     memory: Vec<Option<u8>>,
     call: Vec<usize>,
     tokens: Vec<u8>,
+    halted: bool,
+    exit_code: u8,
+
+    in_port: R,
+    out_port: W,
 }
-impl VM {
-    fn new(tokens: Vec<u8>) -> Self {
+impl<R: Read, W: Write> VM<R, W> {
+    fn new(tokens: Vec<u8>, in_port: R, out_port: W) -> Self {
         Self {
             pc: 0,
             stack: Vec::new(),
             memory: vec![None; MEMORY_SIZE],
             call: Vec::new(),
             tokens,
+            halted: false,
+            exit_code: 0u8,
+
+            in_port,
+            out_port,
         }
     }
 
@@ -120,12 +149,68 @@ impl VM {
         Ok(self.call.pop().unwrap())
     }
 
+    fn sys_read(&mut self) -> Result<(), VmError> {
+        let mut buffer = [0u8; 1];
+
+        match self.in_port.read(&mut buffer) {
+            Ok(0) => {
+                self.push_stack(0)?;
+            }
+            Ok(_) => {
+                self.push_stack(buffer[0])?;
+            }
+            Err(_) => {
+                return Err(VmError::SysError(SysError::InvalidCharacter));
+            }
+        }
+        Ok(())
+    }
+
+    fn sys_print(&mut self) -> Result<(), VmError> {
+        let target = self.pop_stack()?;
+
+        write!(self.out_port, "{}", target as char)
+            .map_err(|_| VmError::SysError(SysError::InvalidCharacter))?;
+
+        Ok(())
+    }
+
+    fn sys_dump(&self) {
+        eprintln!("=== VM STATE ===");
+        eprintln!("STACK : {:?}", self.stack);
+        let memory = self
+            .memory
+            .chunk_by(|a, b| a == b)
+            .map(|chunk| (chunk[0], chunk.len()))
+            .collect::<Vec<(Option<u8>, usize)>>();
+        eprintln!("MEMORY: {:?}", memory);
+        eprintln!("==================");
+    }
+
+    fn sys_exit(&mut self) -> Result<(), VmError> {
+        let code = self.pop_stack()?;
+        self.exit_code = code;
+        self.halted = true;
+
+        Ok(())
+    }
+
     fn run(&mut self) -> Result<(), VmError> {
-        while self.pc < self.tokens.len() {
+        while !self.halted && (self.pc < self.tokens.len()) {
             let token = self.tokens[self.pc];
 
             if let Some(opcode) = OpCode::from_u8(token) {
                 match opcode {
+                    OpCode::SysCall => {
+                        let n = self.pop_stack()?;
+                        match n {
+                            0 => self.sys_read()?,
+                            1 => self.sys_print()?,
+                            2 => self.sys_dump(),
+                            3 => self.sys_exit()?,
+                            _ => return Err(VmError::UnexpectedSysCall(n)),
+                        };
+                    }
                     OpCode::Push => {
                         let val = self.next_byte()?;
                         self.push_stack(val)?;
@@ -257,22 +342,9 @@ impl VM {
                         let dst = self.pop_call()?;
                         self.pc = dst;
                     }
-                    OpCode::Print => {
-                        let value = self.pop_stack()?;
-                        println!("{value}");
-                    }
-                    OpCode::Dump => {
-                        println!("STACK : {:?}", self.stack);
-                        let rle = self
-                            .memory
-                            .chunk_by(|&a, &b| a == b)
-                            .map(|chunk| (chunk[0], chunk.len()))
-                            .collect::<Vec<(Option<u8>, usize)>>();
-                        println!("MEMORY: {:?}", rle);
-                        println!();
-                    }
                     OpCode::Fin => {
-                        exit(0);
+                        self.halted = true;
+                        self.exit_code = 0;
                     }
                 }
             } else {
@@ -301,10 +373,12 @@ fn main() {
         .map(|token| u8::from_str_radix(token, 16).expect("Included invalid token"))
         .collect::<Vec<u8>>();
 
-    let mut vm: VM = VM::new(tokens);
+    let mut vm = VM::new(tokens, stdin().lock(), stdout().lock());
 
     if let Err(e) = vm.run() {
         eprintln!("Error: {} (at address 0x{:02X})", e, vm.pc);
         std::process::exit(1);
     }
+
+    std::process::exit(vm.exit_code as i32);
 }
