@@ -1,5 +1,6 @@
 /*
  * OpCode
+ * 0x00: SYSCALL
  * 0x01: PUSH
  * 0x02: POP
  * 0x10: ADD
@@ -28,6 +29,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum OpCode {
+    SysCall = 0x00,
     Push = 0x01,
     Pop = 0x02,
     Add = 0x10,
@@ -56,6 +58,7 @@ pub enum OpCode {
 impl OpCode {
     pub fn from_u8(n: u8) -> Option<Self> {
         match n {
+            0x00 => Some(Self::SysCall),
             0x01 => Some(Self::Push),
             0x02 => Some(Self::Pop),
             0x10 => Some(Self::Add),
@@ -85,6 +88,7 @@ impl OpCode {
 
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_uppercase().as_str() {
+            "SYSCALL" => Some(Self::SysCall),
             "PUSH" => Some(Self::Push),
             "POP" => Some(Self::Pop),
             "ADD" => Some(Self::Add),
