@@ -15,6 +15,12 @@
  * 0x17: MULI
  * 0x18: DIVI
  * 0x19: MODI
+ * 0x1A: EQ
+ * 0x1B: NEQ
+ * 0x1C: LT
+ * 0x1D: LE
+ * 0x1E: GT
+ * 0x1F: GE
  * 0x20: JZ
  * 0x21: JMZ
  * 0x30: STORE
@@ -44,6 +50,12 @@ pub enum OpCode {
     MulI = 0x17,
     DivI = 0x18,
     ModI = 0x19,
+    Eq = 0x1A,
+    Neq = 0x1B,
+    Lt = 0x1C,
+    Le = 0x1D,
+    Gt = 0x1E,
+    Ge = 0x1F,
     Jz = 0x20,
     Jmz = 0x21,
     Store = 0x30,
@@ -73,6 +85,12 @@ impl OpCode {
             0x17 => Some(Self::MulI),
             0x18 => Some(Self::DivI),
             0x19 => Some(Self::ModI),
+            0x1A => Some(Self::Eq),
+            0x1B => Some(Self::Neq),
+            0x1C => Some(Self::Lt),
+            0x1D => Some(Self::Le),
+            0x1E => Some(Self::Gt),
+            0x1F => Some(Self::Ge),
             0x20 => Some(Self::Jz),
             0x21 => Some(Self::Jmz),
             0x30 => Some(Self::Store),
@@ -103,6 +121,12 @@ impl OpCode {
             "MULI" => Some(Self::MulI),
             "DIVI" => Some(Self::DivI),
             "MODI" => Some(Self::ModI),
+            "EQ" => Some(Self::Eq),
+            "NEQ" => Some(Self::Neq),
+            "LT" => Some(Self::Lt),
+            "LE" => Some(Self::Le),
+            "Gt" => Some(Self::Gt),
+            "Ge" => Some(Self::Ge),
             "JZ" => Some(Self::Jz),
             "JMZ" => Some(Self::Jmz),
             "STORE" => Some(Self::Store),
