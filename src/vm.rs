@@ -392,3 +392,81 @@ impl<R: Read, W: Write> VM<R, W> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::opcode::OpCode;
+
+    fn run_vm(tokens: Vec<u8>) -> VM<std::io::Empty, std::io::Sink> {
+        let mut vm = VM::new(tokens, std::io::empty(), std::io::sink());
+        vm.run().unwrap();
+        vm
+    }
+
+    #[test]
+    fn test_add() {
+        let code = vec![
+            OpCode::Push as u8,
+            10,
+            OpCode::Push as u8,
+            20,
+            OpCode::Add as u8,
+        ];
+        let mut vm = run_vm(code);
+        assert_eq!(vm.stack.pop(), Some(30));
+    }
+
+    #[test]
+    fn test_stack_underflow() {
+        // 空のスタックからPOPしようとする
+        let code = vec![OpCode::Pop as u8];
+        let mut vm = VM::new(code, std::io::empty(), std::io::sink());
+
+        // エラーになるべき
+        match vm.run() {
+            Err(VmError::StackUnderflow) => (), // OK
+            _ => panic!("Expected StackUnderflow error"),
+        }
+    }
+
+    #[test]
+    fn test_jz_jump() {
+        // 条件ジャンプのテスト
+        // PUSH 0, JZ 0x06, PUSH 1(Skip), FIN, PUSH 2(Target), FIN
+        let code = vec![
+            OpCode::Push as u8,
+            0,
+            OpCode::Jz as u8,
+            0x07,
+            OpCode::Push as u8,
+            1, // ここは実行されないはず
+            OpCode::Fin as u8,
+            OpCode::Push as u8,
+            2, // ここに飛んでくるはず
+            OpCode::Fin as u8,
+        ];
+        let mut vm = run_vm(code);
+
+        // PUSH 2 だけが実行されているはず
+        assert_eq!(vm.stack.pop(), Some(2));
+    }
+
+    #[test]
+    fn test_div_by_zero() {
+        // 10 / 0
+        let code = vec![
+            OpCode::Push as u8,
+            10,
+            OpCode::Push as u8,
+            0,
+            OpCode::Div as u8,
+        ];
+        let mut vm = VM::new(code, std::io::empty(), std::io::sink());
+
+        match vm.run() {
+            Err(VmError::DivisionByZero) => (), // OK
+            _ => panic!("Expected DivisionByZero error"),
+        }
+    }
+}
