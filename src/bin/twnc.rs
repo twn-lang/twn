@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::exit;
 
-use twn::OpCode;
+use twn::opcode::OpCode;
 
 fn main() {
     let args = std::env::args().collect::<Vec<String>>();
