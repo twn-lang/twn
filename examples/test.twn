@@ -1,0 +1,271 @@
+; ============================================================
+; 数当てゲーム (0~9)
+;
+; [MEMORY MAP]
+; 0x00      : 正解の数字 (文字コード)
+; 0x01      : 入力された数字 (文字コード)
+; 0x20      : 文字列 "OK" の長さ
+; 0x21~     : 文字列 "OK" のデータ
+; 0x30      : 文字列 "Less" の長さ
+; 0x31~     : 文字列 "Less" のデータ
+; 0x40      : 文字列 "Greater" の長さ
+; 0x41~     : 文字列 "Greater" のデータ
+; 0xFF      : ループカウンタ用
+; ============================================================
+MAIN:
+	CALL SETUP
+
+	; Answer を 0x00 に保存
+	; input を 0x01 に保存
+	PUSH 0x31
+	STOREI 0x00
+
+MAIN_0:
+	CALL INPUT
+
+MAIN_N:
+	; \n なら除去
+	DUP
+	PUSH 0x0A
+	NEQ
+	JZ MAIN_R
+	POP
+	JMZ MAIN_0
+
+MAIN_R:
+	; \r なら除去
+	DUP
+	PUSH 0x0D
+	NEQ
+	JZ MAIN_1
+	POP
+	JMZ MAIN_0
+
+MAIN_1:
+	STOREI 0x01
+
+	CALL POPUP
+	EQ
+	JZ MAIN_EXIT
+
+	CALL POPUP
+	LT
+	JZ MAIN_LT
+
+	CALL POPUP
+	GT
+	JZ MAIN_GT
+
+MAIN_LT:
+	CALL LESS
+	CALL ENTER
+	JMZ MAIN_0
+
+MAIN_GT:
+	CALL GREATER
+	CALL ENTER
+	JMZ MAIN_0
+
+MAIN_EXIT:
+	CALL OK
+	CALL ENTER
+
+	; exitcode = 0 にして EXIT
+	PUSH 0x00
+	PUSH 0x03
+	SYSCALL
+
+
+SETUP:
+	; ==============================
+	; OK を 0x20 に保存
+	; @ 0x20 		-> 2 (OKの文字数)
+	; @ 0x21 ~ 0x22 -> 'O', 'K'
+	; ==============================
+	PUSH 0x02
+	STOREI 0x20
+
+	PUSH 0x4F
+	STOREI 0x21
+	PUSH 0x4B
+	STOREI 0x22
+
+	; ==============================
+	; Less を 0x30 に保存
+	; @ 0x30 		-> 4 (Lessの文字数)
+	; @ 0x31 ~ 0x34 -> 'L', 'e', 's', 's'
+	; ==============================
+	PUSH 0x04
+	STOREI 0x30
+
+	PUSH 0x4C
+	STOREI 0x31
+	PUSH 0x65
+	STOREI 0x32
+	PUSH 0x73
+	STOREI 0x33
+	PUSH 0x73
+	STOREI 0x34
+
+	; ==============================
+	; Greater を 0x40 に保存
+	; @ 0x40 		-> 7 (Greaterの文字数)
+	; @ 0x41 ~ 0x47 -> 'G', 'r', 'e', 'a', 't', 'e', 'r',
+	; ==============================
+	PUSH 0x07
+	STOREI 0x40
+
+	PUSH 0x47
+	STOREI 0x41
+	PUSH 0x72
+	STOREI 0x42
+	PUSH 0x65
+	STOREI 0x43
+	PUSH 0x61
+	STOREI 0x44
+	PUSH 0x74
+	STOREI 0x45
+	PUSH 0x65
+	STOREI 0x46
+	PUSH 0x72
+	STOREI 0x47
+	
+	RET
+
+; ==============================
+; OKを出力する
+; @ 0xFF -> 現在何文字目を出力するかを管理
+; ==============================
+OK:
+	; 事前準備 : counterの用意
+	PUSH 0x00
+	STOREI 0xFF
+
+OK_0:
+	; counter = 文字数 なら RET
+	LOADI 0xFF
+	LOADI 0x20
+
+	LT
+	JZ OK_1
+
+	RET
+
+OK_1:
+	; counter 文字目を出力
+	PUSH 0x21
+	LOADI 0xFF
+	ADD
+	LOAD
+
+	CALL PRINT
+
+	; counter++
+	LOADI 0xFF
+	ADDI 1
+	STOREI 0xFF
+
+	JMZ OK_0
+
+; ==============================
+; Lessを出力する
+; @ 0xFF -> 現在何文字目を出力するかを管理
+; ==============================
+LESS:
+	; 事前準備 : counterの用意
+	PUSH 0x00
+	STOREI 0xFF
+
+LESS_0:
+	; counter = 文字数 なら RET
+	LOADI 0xFF
+	LOADI 0x30
+
+	LT
+	JZ LESS_1
+
+	RET
+
+LESS_1:
+	; counter 文字目を出力
+	PUSH 0x31
+	LOADI 0xFF
+	ADD
+	LOAD
+
+	CALL PRINT
+
+	; counter++
+	LOADI 0xFF
+	ADDI 1
+	STOREI 0xFF
+
+	JMZ LESS_0
+
+; ==============================
+; Greaterを出力する
+; @ 0xFF -> 現在何文字目を出力するかを管理
+; ==============================
+GREATER:
+		; 事前準備 : counterの用意
+		PUSH 0x00
+		STOREI 0xFF
+
+GREATER_0:
+		; counter = 文字数 なら RET
+		LOADI 0xFF
+		LOADI 0x40
+
+		LT
+		JZ GREATER_1
+
+		RET
+
+GREATER_1:
+		; counter 文字目を出力
+		PUSH 0x41
+		LOADI 0xFF
+		ADD
+		LOAD
+
+		CALL PRINT
+
+		; counter++
+		LOADI 0xFF
+		ADDI 1
+		STOREI 0xFF
+
+		JMZ GREATER_0
+
+; ==============================
+; Print を行う
+; ==============================
+PRINT:
+	PUSH 0x01
+	SYSCALL
+	RET
+
+; ==============================
+; 改行 を行う
+; ==============================
+ENTER:
+	PUSH 0x0A
+	CALL PRINT
+	RET
+
+; ==============================
+; 入力 を行う
+; ==============================
+INPUT:
+	PUSH 0x00
+	SYSCALL
+
+	RET
+
+; ==============================
+; 比較のための読み込み
+; ==============================
+POPUP:
+	LOADI 0x01
+	LOADI 0x00
+	RET
