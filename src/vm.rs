@@ -66,7 +66,13 @@ pub struct VM<R: Read, W: Write> {
     pub out_port: W,
 }
 impl<R: Read, W: Write> VM<R, W> {
-    pub fn new(tokens: Vec<u8>, in_port: R, out_port: W) -> Self {
+    pub fn new(mut tokens: Vec<u8>, in_port: R, out_port: W) -> Self {
+        if tokens.len() >= "\0TWN".len() && &tokens[0..4] == [0x00, b'T', b'W', b'N'] {
+            tokens.drain(0..4);
+        } else {
+            panic!("Invalid file format: Magic number not found");
+        }
+
         Self {
             pc: 0,
             stack: Vec::new(),
