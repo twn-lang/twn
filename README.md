@@ -63,6 +63,24 @@ cargo run --bin twnc -- example.twn
 cargo run --bin twnvm -- example.twnd
 ```
 
+## サンプルコード
+
+`examples/` ディレクトリにサンプルコードがあります。
+
+### 数当てゲーム (0~9)
+
+0から9までの数字を当てるゲームです。入力に対して `Less` (小さい), `Greater` (大きい), `OK` (正解) を返します。
+
+**実行方法**
+
+```sh
+# コンパイル
+cargo run --bin twnc -- examples/guess_number.twn
+
+# 実行
+cargo run --bin twnvm -- examples/guess_number.twnd
+```
+
 ## 命令セット (Instruction Set)
 
 大文字・小文字は区別されません。
