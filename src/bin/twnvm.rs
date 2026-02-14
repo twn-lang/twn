@@ -11,12 +11,7 @@ fn main() {
         exit(1);
     }
 
-    let input = std::fs::read_to_string(&args[1]).expect("Input is empty");
-
-    let tokens: Vec<u8> = input
-        .split_whitespace()
-        .map(|token| u8::from_str_radix(token, 16).expect("Included invalid token"))
-        .collect::<Vec<u8>>();
+    let tokens = std::fs::read(&args[1]).expect("Input is empty");
 
     let mut vm = VM::new(tokens, stdin().lock(), stdout().lock());
 
