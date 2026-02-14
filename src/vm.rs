@@ -177,6 +177,10 @@ impl<R: Read, W: Write> VM<R, W> {
         write!(self.out_port, "{}", target as char)
             .map_err(|_| VmError::SysError(SysError::InvalidCharacter))?;
 
+        self.out_port
+            .flush()
+            .map_err(|_| VmError::SysError(SysError::InvalidCharacter))?;
+
         Ok(())
     }
 
