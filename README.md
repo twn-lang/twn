@@ -33,8 +33,8 @@ cargo build --release
 PUSH 10
 PUSH 20
 ADD
-// 結果(30)をASCII文字として出力するために調整（例として単純出力）
-// 実際には数値の文字列変換が必要ですが、ここではデバッグ表示を使用
+; 結果(30)をASCII文字として出力するために調整（例として単純出力）
+; 実際には数値の文字列変換が必要ですが、ここではデバッグ表示を使用
 PUSH 2  ; SYSCALL: DUMP (スタック状態を表示)
 SYSCALL
 PUSH 0  ; 終了コード 0
@@ -88,6 +88,13 @@ cargo run --bin twnvm -- example.twnd
 | `MULI <val>`       | `0x17`     | 乗算 (stack_val \* val)                                        |
 | `DIVI <val>`       | `0x18`     | 除算 (stack_val / val)                                         |
 | `MODI <val>`       | `0x19`     | 剰余 (stack_val % val)                                         |
+| **比較演算**       |            | 条件成立時は `0`、不成立時は `1` をプッシュする (JZ用)         |
+| `EQ`               | `0x1A`     | 等価 (a == b)                                                  |
+| `NEQ`              | `0x1B`     | 不等価 (a != b)                                                |
+| `LT`               | `0x1C`     | 小なり (a < b)                                                 |
+| `LE`               | `0x1D`     | 以下 (a <= b)                                                  |
+| `GT`               | `0x1E`     | 大なり (a > b)                                                 |
+| `GE`               | `0x1F`     | 以上 (a >= b)                                                  |
 | **制御構文**       |            |                                                                |
 | `JZ <addr>`        | `0x20`     | スタックからポップし、値が0なら指定アドレスへジャンプ          |
 | `JMZ <addr>`       | `0x21`     | 無条件ジャンプ (指定アドレスへ移動)                            |
@@ -121,10 +128,10 @@ Loop:
     ADDI 1
     PUSH 2 ; SYSCALL: DUMP
     SYSCALL
-    // ... 条件分岐など
+    ; ... 条件分岐など
     JMZ Loop
 ```
 
 ## ライセンス
 
-MIT License を参照してください。
+[LICENSE](./LICENSE) を参照してください。
